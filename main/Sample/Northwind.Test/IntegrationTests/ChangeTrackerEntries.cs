@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Northwind.Entities.Models;
-using Repository.Pattern.DataContext;
 using Repository.Pattern.Ef6;
-using Repository.Pattern.Infrastructure;
 using Repository.Pattern.Repositories;
 using Repository.Pattern.UnitOfWork;
+using TrackableEntities;
 
 namespace Northwind.Test.IntegrationTests
 {
@@ -18,8 +16,6 @@ namespace Northwind.Test.IntegrationTests
     [TestClass]
     public class ChangeTrackerEntries
     {
-        private TestContext testContextInstance;
-
         [TestInitialize]
         public void Initialize()
         {
@@ -30,17 +26,7 @@ namespace Northwind.Test.IntegrationTests
         ///Gets or sets the test context which provides
         ///information about and functionality for the current test run.
         ///</summary>
-        public TestContext TestContext
-        {
-            get
-            {
-                return testContextInstance;
-            }
-            set
-            {
-                testContextInstance = value;
-            }
-        }
+        public TestContext TestContext { get; set; }
 
         [TestMethod]
         public void AddProducts()
@@ -55,20 +41,20 @@ namespace Northwind.Test.IntegrationTests
                     {
                         ProductName = Guid.NewGuid().ToString(),
                         Discontinued = false,
-                        ObjectState = ObjectState.Added
+                        TrackingState = TrackingState.Added
                     });
                 }
 
-                using (IDataContextAsync context = new NorthwindContext())
-                using (IUnitOfWorkAsync unitOfWork = new UnitOfWork(context))
+                using (var context = new NorthwindContext())
                 {
-                    var northwindContext = (NorthwindContext)context;
+                    IUnitOfWorkAsync unitOfWork = new UnitOfWork(context);
+                    var northwindContext = (NorthwindContext) context;
                     Assert.IsFalse(northwindContext.ChangeTracker.Entries().Any());
 
                     IRepositoryAsync<Product> productRepository =
                         new Repository<Product>(context, unitOfWork);
 
-                    productRepository.InsertGraphRange(products);
+                    productRepository.InsertRange(products);
                     products.Clear();
                     unitOfWork.SaveChanges();
 

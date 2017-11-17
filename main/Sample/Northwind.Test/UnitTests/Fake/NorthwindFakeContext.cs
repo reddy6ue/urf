@@ -1,11 +1,6 @@
-﻿#region
+﻿using Northwind.Entities.Models;
 
-using Northwind.Entities.Models;
-using Repository.Pattern.Ef6;
-
-#endregion
-
-namespace Northwind.Test.Fake
+namespace Northwind.Test.UnitTests.Fake
 {
     public class NorthwindFakeContext : FakeDbContext
     {

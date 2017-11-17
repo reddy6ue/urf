@@ -5,7 +5,9 @@ using Repository.Pattern.Ef6;
 
 namespace Northwind.Entities.Models
 {
-    public partial class NorthwindContext : DataContext
+    // Extend DbContext instead of DataContext, which is now obsolete.
+    // public partial class NorthwindContext : DataContext
+    public partial class NorthwindContext : DbContext
     {
         static NorthwindContext()
         {
@@ -15,7 +17,8 @@ namespace Northwind.Entities.Models
         public NorthwindContext()
             : base("Name=NorthwindContext")
         {
-        }        
+            Configuration.ProxyCreationEnabled = false;
+        }
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<CustomerDemographic> CustomerDemographics { get; set; }

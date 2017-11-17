@@ -1,16 +1,11 @@
-﻿#region
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Northwind.Entities.Models;
-using Northwind.Test.Fake;
-using Repository.Pattern.DataContext;
-using Repository.Pattern.Ef6;
-using Repository.Pattern.Infrastructure;
+using Northwind.Test.UnitTests.Fake;
 using Repository.Pattern.UnitOfWork;
-
-#endregion
+using TrackableEntities;
 
 namespace Northwind.Test.UnitTests.Repository
 {
@@ -32,10 +27,15 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void DeleteProductById()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWorkAsync unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true, ObjectState = ObjectState.Added});
+                IUnitOfWorkAsync unitOfWork = new FakeUnitofWork(northwindFakeContext);
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 2,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
 
                 unitOfWork.SaveChanges();
 
@@ -52,11 +52,27 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void DeepLoadProductWithSupplier()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
-                unitOfWork.Repository<Supplier>().Insert(new Supplier {SupplierID = 1, CompanyName = "Nokia", City = "Tampere", Country = "Finland", ContactName = "Stephen Elop", ContactTitle = "CEO", ObjectState = ObjectState.Added});
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true, ProductName = "Nokia Lumia 1520", SupplierID = 1, ObjectState = ObjectState.Added});
+                IUnitOfWork unitOfWork = new FakeUnitofWork(northwindFakeContext);
+                unitOfWork.Repository<Supplier>().Insert(new Supplier
+                {
+                    SupplierID = 1,
+                    CompanyName = "Nokia",
+                    City = "Tampere",
+                    Country = "Finland",
+                    ContactName = "Stephen Elop",
+                    ContactTitle = "CEO",
+                    TrackingState = TrackingState.Added
+                });
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 2,
+                    Discontinued = true,
+                    ProductName = "Nokia Lumia 1520",
+                    SupplierID = 1,
+                    TrackingState = TrackingState.Added
+                });
 
                 unitOfWork.SaveChanges();
 
@@ -69,16 +85,21 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void DeleteProductByProduct()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true, ObjectState = ObjectState.Added});
+                IUnitOfWork unitOfWork = new FakeUnitofWork(northwindFakeContext);
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 2,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
 
                 unitOfWork.SaveChanges();
 
                 var product = unitOfWork.Repository<Product>().Find(2);
 
-                product.ObjectState = ObjectState.Deleted;
+                product.TrackingState = TrackingState.Deleted;
 
                 unitOfWork.Repository<Product>().Delete(product);
 
@@ -93,12 +114,27 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void FindProductById()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 1, Discontinued = false, ObjectState = ObjectState.Added});
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true, ObjectState = ObjectState.Added});
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 3, Discontinued = true, ObjectState = ObjectState.Added});
+                IUnitOfWork unitOfWork = new FakeUnitofWork(northwindFakeContext);
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 1,
+                    Discontinued = false,
+                    TrackingState = TrackingState.Added
+                });
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 2,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 3,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
 
                 unitOfWork.SaveChanges();
 
@@ -112,23 +148,38 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void GetProductsExecutesQuery()
         {
-            using (IDataContextAsync context = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(context))
+            using (var context = new NorthwindFakeContext())
             {
+                IUnitOfWork unitOfWork = new FakeUnitofWork(context);
                 var products = unitOfWork.Repository<Product>().Query().Select().ToList();
-                Assert.IsInstanceOfType(products, typeof (List<Product>));
+                Assert.IsInstanceOfType(products, typeof(List<Product>));
             }
         }
 
         [TestMethod]
         public void GetProductsThatHaveBeenDiscontinued()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 1, Discontinued = false, ObjectState = ObjectState.Added});
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true, ObjectState = ObjectState.Added});
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 3, Discontinued = true, ObjectState = ObjectState.Added});
+                IUnitOfWork unitOfWork = new FakeUnitofWork(northwindFakeContext);
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 1,
+                    Discontinued = false,
+                    TrackingState = TrackingState.Added
+                });
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 2,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 3,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
 
                 unitOfWork.SaveChanges();
 
@@ -141,12 +192,27 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void InsertProduct()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 1, Discontinued = false, ObjectState = ObjectState.Added});
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true, ObjectState = ObjectState.Added});
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 3, Discontinued = true, ObjectState = ObjectState.Added});
+                IUnitOfWork unitOfWork = new FakeUnitofWork(northwindFakeContext);
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 1,
+                    Discontinued = false,
+                    TrackingState = TrackingState.Added
+                });
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 2,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 3,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
 
                 unitOfWork.SaveChanges();
 
@@ -160,14 +226,14 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void InsertRangeOfProducts()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
+                IUnitOfWork unitOfWork = new FakeUnitofWork(northwindFakeContext);
                 var newProducts = new[]
                 {
-                    new Product {ProductID = 1, Discontinued = false, ObjectState = ObjectState.Added},
-                    new Product {ProductID = 2, Discontinued = true, ObjectState = ObjectState.Added},
-                    new Product {ProductID = 3, Discontinued = true, ObjectState = ObjectState.Added}
+                    new Product {ProductID = 1, Discontinued = false, TrackingState = TrackingState.Added},
+                    new Product {ProductID = 2, Discontinued = true, TrackingState = TrackingState.Added},
+                    new Product {ProductID = 3, Discontinued = true, TrackingState = TrackingState.Added}
                 };
 
                 unitOfWork.Repository<Product>().InsertRange(newProducts);
@@ -181,10 +247,15 @@ namespace Northwind.Test.UnitTests.Repository
         [TestMethod]
         public void UpdateProduct()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWork unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
-                unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true, ObjectState = ObjectState.Added});
+                IUnitOfWork unitOfWork = new FakeUnitofWork(northwindFakeContext);
+                unitOfWork.Repository<Product>().Insert(new Product
+                {
+                    ProductID = 2,
+                    Discontinued = true,
+                    TrackingState = TrackingState.Added
+                });
 
                 unitOfWork.SaveChanges();
 
@@ -193,7 +264,7 @@ namespace Northwind.Test.UnitTests.Repository
                 Assert.AreEqual(product.Discontinued, true, "Assert we are able to find the inserted Product.");
 
                 product.Discontinued = false;
-                product.ObjectState = ObjectState.Modified;
+                product.TrackingState = TrackingState.Modified;
 
                 unitOfWork.Repository<Product>().Update(product);
                 unitOfWork.SaveChanges();
@@ -203,11 +274,11 @@ namespace Northwind.Test.UnitTests.Repository
         }
 
         [TestMethod]
-        public async void FindProductKeyAsync()
+        public async Task FindProductKeyAsync()
         {
-            using (IDataContextAsync northwindFakeContext = new NorthwindFakeContext())
-            using (IUnitOfWorkAsync unitOfWork = new UnitOfWork(northwindFakeContext))
+            using (var northwindFakeContext = new NorthwindFakeContext())
             {
+                IUnitOfWorkAsync unitOfWork = new FakeUnitofWork(northwindFakeContext);
                 unitOfWork.Repository<Product>().Insert(new Product {ProductID = 2, Discontinued = true});
 
                 unitOfWork.SaveChanges();

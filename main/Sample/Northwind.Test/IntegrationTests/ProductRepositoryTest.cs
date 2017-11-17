@@ -1,19 +1,15 @@
-﻿#region
-
-using System;
+﻿using System;
 using System.Data.Entity.Validation;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Northwind.Entities.Models;
-using Repository.Pattern.DataContext;
 using Repository.Pattern.Ef6;
-using Repository.Pattern.Infrastructure;
 using Repository.Pattern.Repositories;
 using Repository.Pattern.UnitOfWork;
-
-#endregion
+using TrackableEntities;
+using System.Threading.Tasks;
 
 namespace Northwind.Test.IntegrationTests
 {
@@ -36,18 +32,23 @@ namespace Northwind.Test.IntegrationTests
         [TestMethod]
         public void InsertProducts()
         {
-            using (IDataContextAsync context = new NorthwindContext())
-            using (IUnitOfWorkAsync unitOfWork = new UnitOfWork(context))
+            using (var context = new NorthwindContext())
             {
+                IUnitOfWorkAsync unitOfWork = new UnitOfWork(context);
                 IRepositoryAsync<Product> productRepository = new Repository<Product>(context, unitOfWork);
 
                 var newProducts = new[]
                 {
-                    new Product {ProductName = "One", Discontinued = false, ObjectState = ObjectState.Added},
-                    new Product {ProductName = "12345678901234567890123456789012345678901234567890", Discontinued = true, ObjectState = ObjectState.Added},
-                    new Product {ProductName = "Three", Discontinued = true, ObjectState = ObjectState.Added},
-                    new Product {ProductName = "Four", Discontinued = true, ObjectState = ObjectState.Added},
-                    new Product {ProductName = "Five", Discontinued = true, ObjectState = ObjectState.Added}
+                    new Product {ProductName = "One", Discontinued = false, TrackingState = TrackingState.Added},
+                    new Product
+                    {
+                        ProductName = "12345678901234567890123456789012345678901234567890",
+                        Discontinued = true,
+                        TrackingState = TrackingState.Added
+                    },
+                    new Product {ProductName = "Three", Discontinued = true, TrackingState = TrackingState.Added},
+                    new Product {ProductName = "Four", Discontinued = true, TrackingState = TrackingState.Added},
+                    new Product {ProductName = "Five", Discontinued = true, TrackingState = TrackingState.Added}
                 };
 
                 foreach (var product in newProducts)
@@ -83,7 +84,34 @@ namespace Northwind.Test.IntegrationTests
                 }
 
                 var insertedProduct = productRepository.Query(x => x.ProductName == "One").Select().FirstOrDefault();
-                Assert.IsTrue(insertedProduct.ProductName == "One");
+                Assert.IsTrue(insertedProduct?.ProductName == "One");
+            }
+        }
+
+        [TestMethod]
+        public async Task DeleteProductsAsync()
+        {
+            using (var context = new NorthwindContext())
+            {
+                IUnitOfWorkAsync unitOfWork = new UnitOfWork(context);
+                IRepositoryAsync<Product> productRepository = new Repository<Product>(context, unitOfWork);
+
+                var product = new Product
+                {
+                    ProductName = "One",
+                    Discontinued = false,
+                    TrackingState = TrackingState.Added
+                };
+
+                productRepository.Insert(product);
+                await unitOfWork.SaveChangesAsync();
+
+                await productRepository.DeleteAsync(product.ProductID);
+                await unitOfWork.SaveChangesAsync();
+
+                var deletedProduct = unitOfWork.Repository<Product>().Find(product.ProductID);
+
+                Assert.IsNull(deletedProduct);
             }
         }
     }
